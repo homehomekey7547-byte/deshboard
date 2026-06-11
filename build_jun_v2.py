@@ -94,10 +94,9 @@ def find_const(name, text):
         return None
     return (idx, brace_start, json_str, brace_end, semi + 1)
 
-# ── Parse tasks (Notion API, fallback to CSV) ──
+# ── Parse tasks (Notion API) ──
 person_tasks = {'俊': {}, '盈萱': {}, '岍叡': {}}
 PERSON_LOOKUP = {'俊': '俊', '萱': '盈萱', '岍': '岍叡'}
-USE_CSV = False
 
 def add_task(person, wk, code, desc):
     t = {
@@ -218,36 +217,8 @@ except Exception as e:
             print(f'Loaded from cache: {cache_file}')
         except Exception as ce:
             print(f"Cache load failed: {ce}")
-            USE_CSV = True
     else:
-        USE_CSV = True
-
-# ── CSV fallback ──
-if USE_CSV:
-    csv_dir = base + '/manual_csv'
-    if not os.path.isdir(csv_dir):
-        print(f"CSV directory not found: {csv_dir}")
-    else:
-        csv_files = [f for f in os.listdir(csv_dir) if f.endswith('.csv') and f != '範例格式.csv']
-        if not csv_files:
-            print("No CSV files found in manual_csv/ (excluding 範例格式.csv)")
-        else:
-            import csv
-            for cf in csv_files:
-                cf_path = os.path.join(csv_dir, cf)
-                with open(cf_path, 'r', encoding='utf-8-sig') as f:
-                    for row in csv.DictReader(f):
-                        try:
-                            wk = int(row.get('week', '').strip())
-                            person = row.get('person', '').strip()
-                            code = row.get('code', '').strip()
-                            desc = row.get('desc', '').strip()
-                        except:
-                            continue
-                        if not code or not desc or person not in ('俊', '盈萱', '岍叡'):
-                            continue
-                        add_task(person, wk, code, desc)
-            print(f"CSV loaded: {len(csv_files)} files")
+        print("No Notion token or DB_ID set; tasks loaded from cache only.")
 
 all_weeks = set()
 for p, wks in person_tasks.items():
