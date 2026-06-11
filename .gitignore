@@ -2,3 +2,4 @@ task_cache.json
 .netlify_deploy_config
 __pycache__/
 *.pyc
+.env
