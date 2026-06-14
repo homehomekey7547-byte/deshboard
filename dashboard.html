@@ -537,7 +537,7 @@ function showDetail(person, week) {
       (t.score_map['影'] ? t.score_map['影'].label : '') + ' ' +
       (t.score_map['複'] ? t.score_map['複'].label : '') : '';
     const desc = t.desc.length > 60 ? t.desc.substring(0, 60) + '…' : t.desc;
-    var _zCnt = !ROUTINE_DESCS[t.desc] ? (getComfortZones(person)[t.desc] || 0) : 0;
+    var _zCnt = !isRoutineDesc(t.desc) ? (getComfortZones(person)[t.desc] || 0) : 0;
     var _czBadge = _zCnt >= 3 ? '<span class="comfort-badge zone">★×' + _zCnt + '</span>' : '';
     var _wkS2 = String(week);
     var _ed2 = EVOLUTION_DATA[person] && EVOLUTION_DATA[person][_wkS2];
@@ -590,7 +590,7 @@ function showDetail(person, week) {
         iHTML += interpretShift(evo2.structure_shift);
         var zones2 = getComfortZones(person);
         var cc2 = 0, ns2 = 0;
-        data.tasks.forEach(function(t) { if (!ROUTINE_DESCS[t.desc] && zones2[t.desc] >= 3) cc2++; if (t.strategy && t.strategy !== '行政營運' && evo2.prev4Strats && evo2.prev4Strats.indexOf(t.strategy) === -1) ns2++; });
+        data.tasks.forEach(function(t) { if (!isRoutineDesc(t.desc) && zones2[t.desc] >= 3) cc2++; if (t.strategy && t.strategy !== '行政營運' && evo2.prev4Strats && evo2.prev4Strats.indexOf(t.strategy) === -1) ns2++; });
         iHTML += interpretComfort(cc2);
         iHTML += interpretNovel(ns2);
       }
@@ -1083,7 +1083,13 @@ function switchStratPerson(person) {
 // ═══════════════════════════════════════
 // 演化標籤 & 舒適區
 // ═══════════════════════════════════════
-var ROUTINE_DESCS = {'工作日誌':1, '打卡':1};
+var ROUTINE_DESC_KEYWORDS = ['工作日誌', '打卡', '0800', '高齡課程', '法六', '法遵課程'];
+function isRoutineDesc(desc) {
+  for (var i = 0; i < ROUTINE_DESC_KEYWORDS.length; i++) {
+    if (desc.indexOf(ROUTINE_DESC_KEYWORDS[i]) !== -1) return true;
+  }
+  return false;
+}
 var _comfortCache = {};
 function getComfortZones(person) {
   if (_comfortCache[person]) return _comfortCache[person];
@@ -1102,7 +1108,7 @@ function renderEvolutionLabels(person, week, data) {
   if (ed.structure_shift && ed.structure_shift.length>0) { html += '<span class="evo-badge shift" title="與前4週相比，年度策略類別的新增或消失">🔄 結構變化: '+ed.structure_shift.join(', ')+ib+'結構變化'+ic+'</span>'; }
   else { html += '<span class="evo-badge shift" style="opacity:0.5;" title="與前4週相比，策略結構未有明顯變化">🔄 結構穩定'+ib+'結構變化'+ic+'</span>'; }
   var zones=getComfortZones(person), cc=0, ns=0;
-  data.tasks.forEach(function(t) { if(!ROUTINE_DESCS[t.desc] && zones[t.desc]>=3) cc++; if(t.strategy && t.strategy!=='行政營運' && ed.prev4Strats && ed.prev4Strats.indexOf(t.strategy)===-1) ns++; });
+  data.tasks.forEach(function(t) { if(!isRoutineDesc(t.desc) && zones[t.desc]>=3) cc++; if(t.strategy && t.strategy!=='行政營運' && ed.prev4Strats && ed.prev4Strats.indexOf(t.strategy)===-1) ns++; });
   if(cc>0) html += '<span class="evo-badge breadth" style="background:#f3e5f5;color:#7b1fa2;cursor:help;" title="重複出現3次以上的任務描述，可能落入慣性區">⭐ 舒適區 '+cc+' 件'+ib+'舒適區'+ic+'</span>';
   if(ns>0) html += '<span class="evo-badge shift-up" style="cursor:help;" title="過去4週未出現過的策略類別，反映新的工作方向">✨ 新策略 '+ns+' 件'+ib+'新策略'+ic+'</span>';
   html += '</div>'; return html;
@@ -1301,7 +1307,7 @@ var INFO_DATA = {
   },
   '舒適區': {
     title: '舒適區',
-    def: '同一描述任務重複出現達 3 次以上，落入固定工作模式。已排除每日例行必要任務（工作日誌、打卡等）。',
+    def: '同一描述任務重複出現達 3 次以上，落入固定工作模式。已排除每日例行必要任務（工作日誌、打卡、0800 案件轉發、法六/法遵課程、高齡課程等）。',
     calc: '統計整個資料範圍內，同一任務描述出現的次數。排除例行任務後再計算。',
     high: '可能持續停留在熟悉的工作模式，缺少新挑戰。',
     low: '本週任務重複性較低，工作內容較有變化。',
@@ -1491,9 +1497,9 @@ function renderWeeklyComparison(person, week, data) {
   return '<div class="week-compare"><div class="cmp-title">較上週 W' + prevWeek + ' 比較</div><div class="cmp-row">' + lines.join('') + '</div></div>';
 }
 
+// 個人平均參考線 + 趨勢投影線 (Chart.js plugins)
 // ═══════════════════════════════════════
-// 個人平均參考線 (Chart.js plugin)
-// ═══════════════════════════════════════
+// 平均線：淡化虛線，僅供區間參考
 Chart.register({
   id: 'avgRefLines',
   afterDraw: function(chart) {
@@ -1507,9 +1513,9 @@ Chart.register({
       var avg = values.reduce(function(a,b){return a+b;}, 0) / values.length;
       var y = yScale.getPixelForValue(avg);
       ctx.save();
-      ctx.setLineDash([5, 4]);
-      ctx.strokeStyle = ds.borderColor + '70';
-      ctx.lineWidth = 1.2;
+      ctx.setLineDash([3, 5]);
+      ctx.strokeStyle = ds.borderColor + '40';
+      ctx.lineWidth = 0.8;
       ctx.beginPath();
       ctx.moveTo(chart.chartArea.left, y);
       ctx.lineTo(chart.chartArea.right, y);
@@ -1518,11 +1524,9 @@ Chart.register({
     });
   }
 });
-
-// 趨勢線 (Chart.js plugin)
-// ═══════════════════════════════════════
+// 趨勢投影線：最後 3 週線性迴歸，外推 2 週作為短箭頭
 Chart.register({
-  id: 'trendLines',
+  id: 'trendProjection',
   afterDraw: function(chart) {
     if (chart.canvas.id !== 'mainChart') return;
     var yScale = chart.scales.y;
@@ -1535,54 +1539,66 @@ Chart.register({
       for (var i = 0; i < pts.length; i++) {
         if (pts[i] !== null && pts[i] !== undefined) valid.push({ x: i, y: pts[i] });
       }
-      if (valid.length < 3) return;
-      var n = valid.length;
+      if (valid.length < 4) return;
+      // Use last 3 points for short-term regression
+      var last3 = valid.slice(-3);
+      var n = last3.length;
       var sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
       for (var j = 0; j < n; j++) {
-        sumX += valid[j].x;
-        sumY += valid[j].y;
-        sumXY += valid[j].x * valid[j].y;
-        sumX2 += valid[j].x * valid[j].x;
+        sumX += last3[j].x;
+        sumY += last3[j].y;
+        sumXY += last3[j].x * last3[j].y;
+        sumX2 += last3[j].x * last3[j].x;
       }
       var denom = n * sumX2 - sumX * sumX;
       if (Math.abs(denom) < 1e-10) return;
       var slope = (n * sumXY - sumX * sumY) / denom;
       var intercept = (sumY - slope * sumX) / n;
-      // Draw line from first to last valid point's x position
-      var x1 = xScale.getPixelForValue(valid[0].x);
-      var x2 = xScale.getPixelForValue(valid[valid.length - 1].x);
-      var y1_val = slope * valid[0].x + intercept;
-      var y2_val = slope * valid[valid.length - 1].x + intercept;
-      var y1 = yScale.getPixelForValue(y1_val);
-      var y2 = yScale.getPixelForValue(y2_val);
-      // Color based on endpoint zone vs personal average
-      var avg = valid.reduce(function(a,b){return a+b.y;}, 0) / n;
-      var endVal = y2_val;
-      var zoneColor;
-      if (endVal > avg * 1.25) zoneColor = '#F1C40F'; // 豐盛 gold
-      else if (endVal >= avg * 0.8) zoneColor = '#27AE60'; // 正常 green
-      else if (endVal >= avg * 0.5) zoneColor = '#E67E22'; // 緊急 orange
-      else zoneColor = '#E74C3C'; // 危險 red
+      // Last data point position
+      var lastIdx = valid[valid.length - 1].x;
+      var lastVal = valid[valid.length - 1].y;
+      var x0 = xScale.getPixelForValue(lastIdx);
+      var y0 = yScale.getPixelForValue(lastVal);
+      // Project 2 weeks forward
+      var x1 = xScale.getPixelForValue(lastIdx + 2 > valid.length + 1 ? 0 : lastIdx + 2);
+      // If category scale returns same pixel, calculate offset manually
+      var unitPx = xScale.getPixelForValue(lastIdx) - xScale.getPixelForValue(Math.max(0, lastIdx - 1));
+      if (unitPx <= 0) unitPx = 40;
+      var projPx = x0 + unitPx * 2;
+      var projVal = slope * (lastIdx + 2) + intercept;
+      var projY = yScale.getPixelForValue(projVal);
+      // Dashed projection line
       ctx.save();
-      ctx.setLineDash([6, 4]);
-      ctx.strokeStyle = zoneColor;
-      ctx.lineWidth = 2;
-      ctx.globalAlpha = 0.7;
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = ds.borderColor + '90';
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(projPx, projY);
       ctx.stroke();
-      // Draw direction arrow at end
-      var arrowSize = 6;
-      var angle = Math.atan2(y1 - y2, x2 - x1);
-      ctx.fillStyle = zoneColor;
-      ctx.globalAlpha = 0.85;
+      // Arrow head at projection end
+      ctx.setLineDash([]);
+      ctx.fillStyle = ds.borderColor;
+      var angle = Math.atan2(y0 - projY, projPx - x0);
+      var aSize = 7;
       ctx.beginPath();
-      ctx.moveTo(x2, y2);
-      ctx.lineTo(x2 - arrowSize * Math.cos(angle - 0.4), y2 + arrowSize * Math.sin(angle - 0.4));
-      ctx.lineTo(x2 - arrowSize * Math.cos(angle + 0.4), y2 + arrowSize * Math.sin(angle + 0.4));
+      ctx.moveTo(projPx, projY);
+      ctx.lineTo(projPx - aSize * Math.cos(angle - 0.4), projY + aSize * Math.sin(angle - 0.4));
+      ctx.lineTo(projPx - aSize * Math.cos(angle + 0.4), projY + aSize * Math.sin(angle + 0.4));
       ctx.closePath();
       ctx.fill();
+      // Zone label at projection end
+      var allAvg = valid.reduce(function(a,b){return a+b.y;}, 0) / valid.length;
+      var zoneLabel, zoneColor;
+      if (projVal > allAvg * 1.25) { zoneLabel = '豐盛'; zoneColor = '#F1C40F'; }
+      else if (projVal >= allAvg * 0.8) { zoneLabel = '正常'; zoneColor = '#27AE60'; }
+      else if (projVal >= allAvg * 0.5) { zoneLabel = '緊急'; zoneColor = '#E67E22'; }
+      else { zoneLabel = '危險'; zoneColor = '#E74C3C'; }
+      ctx.font = 'bold 10px sans-serif';
+      ctx.fillStyle = zoneColor;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(zoneLabel, projPx + 4, projY - 2);
       ctx.restore();
     });
   }
@@ -1704,6 +1720,9 @@ function renderGuideContent() {
   }).join('');
 }
 
+// ═══════════════════════════════════════
+// 狀態摘要（圖表下方）
+// ═══════════════════════════════════════
 // ═══════════════════════════════════════
 // 初始化
 // ═══════════════════════════════════════
