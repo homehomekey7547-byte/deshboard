@@ -3,3 +3,5 @@ task_cache.json
 __pycache__/
 *.pyc
 .env
+
+*.pdf
