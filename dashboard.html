@@ -1567,11 +1567,10 @@ Chart.register({
       var projPx = x0 + unitPx * 2;
       var projVal = slope * (lastIdx + 2) + intercept;
       var projY = yScale.getPixelForValue(projVal);
-      // Dashed projection line
+      // Semi-transparent projection line
       ctx.save();
-      ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = ds.borderColor + '90';
-      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = ds.borderColor + '60';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(x0, y0);
       ctx.lineTo(projPx, projY);
