@@ -277,6 +277,17 @@ if new_weeks:
         chart['xuan_tasks'].insert(idx, 0)
     chart['weeks'] = ch_weeks
 
+# Limit to last 12 weeks (~3 months)
+if len(ch_weeks) > 12:
+    keep_set = set(ch_weeks[-12:])
+    keep_sorted = sorted(keep_set)
+    orig_weeks = ch_weeks[:]
+    ch_weeks = keep_sorted
+    chart['weeks'] = keep_sorted
+    for k in ('dates','labels'):
+        if len(chart.get(k, [])) == len(orig_weeks):
+            chart[k] = [chart[k][i] for i, w in enumerate(orig_weeks) if w in keep_set]
+
 # Compute chart data for all 3 persons
 for person, prefix in PERSON_MAP.items():
     pts_key = f'{prefix}_points'

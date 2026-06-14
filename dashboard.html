@@ -577,10 +577,10 @@ function showDetail(person, week) {
       iHTML += interpretTasks(tasks2, avgTasks2);
       var stL = '';
       if (pts2 === 0) { var pOk = prevPts2 !== null && prevPts2 >= avgPts2 * 0.65; stL = (pOk && idx2 < allPts.length-1 && allPts[idx2+1] >= avgPts2*0.65) ? '休假' : '不存在'; }
-      else if (pts2 > avgPts2*1.25 && tasks2 > avgTasks2*1.15) stL = '偏高';
+      else if (pts2 > avgPts2*1.25 && tasks2 > avgTasks2*1.15) stL = '豐盛';
       else if (pts2 >= avgPts2*0.8) stL = '正常';
-      else if (pts2 >= avgPts2*0.5) stL = '偏低';
-      else stL = '待注意';
+      else if (pts2 >= avgPts2*0.5) stL = '緊急';
+      else stL = '危險';
       iHTML += interpretStatus({label: stL});
       var wk_s2 = String(week);
       var evo2 = EVOLUTION_DATA[person] && EVOLUTION_DATA[person][wk_s2];
@@ -662,14 +662,14 @@ function renderWeeklyReport(person, week, data) {
       if (prevOk && nextOk) return { label: '休假', note: '前後週正常，應屬休假', cls: 'leave', icon: '🔷' };
       return { label: '不存在', note: '無任務紀錄', cls: 'none', icon: '⬜' };
     }
-    // 偏高（產出顯著高於平均）
-    if (pts > avgPts * 1.25 && tasks > avgTasks * 1.15) return { label: '偏高', note: '高於平均，觀察是否可持續', cls: 'affluence', icon: '▲' };
+    // 豐盛（產出顯著高於平均）
+    if (pts > avgPts * 1.25 && tasks > avgTasks * 1.15) return { label: '豐盛', note: '高產出需節約鞏固', cls: 'affluence', icon: '🌟' };
     // 正常（合理範圍）
     if (pts >= avgPts * 0.8) return { label: '正常', note: '穩定', cls: 'normal', icon: '🟢' };
-    // 偏低
-    if (pts >= avgPts * 0.5) return { label: '偏低', note: '低於平均', cls: 'critical', icon: '▽' };
-    // 待注意
-    return { label: '待注意', note: '明顯偏低', cls: 'danger', icon: '○' };
+    // 緊急（偏低）
+    if (pts >= avgPts * 0.5) return { label: '緊急', note: '低於平均需調整', cls: 'critical', icon: '🔴' };
+    // 危險（極低）
+    return { label: '危險', note: '點數過低需檢討', cls: 'danger', icon: '🟡' };
   }
   var status = calcStatus();
 
@@ -780,7 +780,7 @@ function renderWeeklyReport(person, week, data) {
   }
   // ---- 綜合評分（A/B/C/D） ----
   function calcCompositeScore() {
-    var stScore = status.label === '偏高' ? 98 : status.label === '正常' ? 95 : status.label === '休假' ? 75 : status.label === '偏低' ? 60 : status.label === '待注意' ? (recovering ? 35 : 20) : 10;
+    var stScore = status.label === '豐盛' ? 98 : status.label === '正常' ? 95 : status.label === '休假' ? 75 : status.label === '緊急' ? 60 : status.label === '危險' ? (recovering ? 35 : 20) : 10;
     var ptsRatio = pts / avgPts;
     var ptsScore = ptsRatio >= 1.2 ? 100 : ptsRatio >= 0.9 ? 80 : ptsRatio >= 0.7 ? 60 : ptsRatio >= 0.5 ? 40 : 20;
     var taskRatio = tasks / avgTasks;
@@ -804,7 +804,7 @@ function renderWeeklyReport(person, week, data) {
     var ptsDesc = pts >= avgPts * 1.1 ? '高於平均' : pts >= avgPts * 0.9 ? '接近平均' : '低於平均';
     var taskDesc = tasks >= avgTasks * 1.1 ? '任務量充足' : tasks >= avgTasks * 0.8 ? '任務量適中' : '任務量偏低';
     var trendDir = prevPts !== null ? (pts > prevPts ? '，較上週上升' : pts < prevPts ? '，較上週下降' : '，與上週持平') : '';
-    var statusDesc = status.label === '偏高' ? '高於個人平均' : status.label === '正常' ? '目前狀態穩定' : status.label === '休假' ? '休假中，產能較低屬正常' : status.label === '偏低' ? '低於個人平均' : status.label === '待注意' ? (recovering ? '正在回升中' : '明顯偏低') : '本週無任務紀錄';
+    var statusDesc = status.label === '豐盛' ? '產出豐盛，需節約鞏固避免下滑' : status.label === '正常' ? '目前狀態穩定' : status.label === '休假' ? '休假中，產能較低屬正常' : status.label === '緊急' ? '出現下滑警示，需立即調整' : status.label === '危險' ? (recovering ? '正在回升中' : '需全面檢討工作方式') : '本週無任務紀錄';
     return DISPLAY_NAMES[person] + '本週行動點數 ' + pts.toFixed(2) + ' 點，' + ptsDesc + '（個人平均 ' + avgPts.toFixed(2) + '）' + trendDir + '。任務 ' + tasks + ' 件，' + taskDesc + '（平均 ' + avgTasks.toFixed(1) + ' 件）。四維度中「' + dimLabels[bestDim] + '」（' + dimAvg[bestDim].toFixed(2) + '）表現最佳，「' + dimLabels[worstDim] + '」（' + dimAvg[worstDim].toFixed(2) + '）可再加強。' + statusDesc + '。綜合評分 ' + comp.ch + '級（' + comp.score + '分），' + comp.desc + '。';
   }
   var comp = calcCompositeScore();
@@ -833,56 +833,64 @@ function renderWeeklyReport(person, week, data) {
       steps.push('② 指派明確任務：直接給予可立即上手的工作，重新啟動動能');
       steps.push('③ 建立回報機制：要求每日簡短回報進度，確保不會持續空白');
     }
-  } else if (status.label === '偏低') {
+  } else if (status.label === '緊急') {
     if (isSelf) {
-      steps.push('【點數低於平均，可檢視調整】');
-      steps.push('① 鎖定能快速產出的高優先任務：先做有明確成果的事');
+      steps.push('【點數或趨勢出現警示，需立即調整】');
+      steps.push('① 鎖定能快速產出的高優先任務：先做有明確成果的事，扭轉下滑趨勢');
       steps.push('② 減少非必要會議與行政：集中火力在核心任務');
       steps.push('③ 設立每日簡短自我回顧：確保每天有進度');
       steps.push('④ 調整下週工作計畫：目標回到個人平均水準');
     } else {
-      steps.push('【部屬點數低於平均，主管可關心】');
-      steps.push('① 主管優先了解：與該員一對一釐清問題');
+      steps.push('【部屬點數或趨勢出現警示，主管需介入】');
+      steps.push('① 主管優先了解：跳過例行流程，直接與該員一對一釐清問題');
       steps.push('② 鎖定能快速產出的高優先任務：引導該員先做有明確成果的事');
-      steps.push('③ 設立每日回報機制：確保每天有進度');
+      steps.push('③ 設立每日回報機制：確保每天有進度，避免情況惡化');
     }
-  } else if (status.label === '待注意') {
+  } else if (status.label === '危險') {
     if (recovering) {
       if (isSelf) {
         steps.push('【點數仍低但正在回升】');
-        steps.push('① 維持回升力道：延續本週有效的工作模式');
+        steps.push('① 維持回升力道：延續本週有效的工作模式，不要放鬆');
         steps.push('② 確保連續產出：目標回到個人平均水準並維持');
         steps.push('③ 檢視回升原因：哪些做法有效，強化它們');
+        steps.push('④ 避免急轉彎：不要因為一週好轉就大量變動工作方式');
       } else {
         steps.push('【該員點數仍低但正在回升】');
         steps.push('① 主管持續關注：確認回升力道能否維持');
         steps.push('② 協助確保連續產出：目標回到個人平均水準');
         steps.push('③ 檢視回升原因：了解哪些做法有效，強化這些方向');
+        steps.push('④ 避免過早調整：不要因為一週好轉就大量變動工作安排');
       }
     } else {
       if (isSelf) {
-        steps.push('【點數明顯偏低，可盤點現狀】');
-        steps.push('① 立即自我盤點：先釐清根本問題');
+        steps.push('【點數過低，需全面檢討】');
+        steps.push('① 立即自我盤點：跳過例行流程，先釐清根本問題');
         steps.push('② 重新檢視工作方式：評估時間分配與優先級');
         steps.push('③ 主動找出可承接的任務：提高產出');
         steps.push('④ 檢視是否有任務被漏登：確認 Notion 紀錄是否完整');
       } else {
-        steps.push('【該員點數明顯偏低】');
-        steps.push('① 主管了解情況：評估是否需要調整工作分配');
+        steps.push('【該員點數過低，主管需接手】');
+        steps.push('① 主管跳過例行流程：直接接手或指派指導人力');
         steps.push('② 重新檢視該員工作方式：評估時間分配與任務安排');
         steps.push('③ 檢視是否有任務被漏登：確認 Notion 紀錄是否完整');
         steps.push('④ 調整下週工作分配：目標回到該員個人平均水準');
       }
     }
-  } else if (status.label === '偏高') {
+  } else if (status.label === '豐盛') {
     if (isSelf) {
-      steps.push('【產出高於平均，觀察是否可持續】');
-      steps.push('① 觀察產能：確認本週的高產出是否可持續，還是短期因素');
-      steps.push('② 檢視做法：釐清本週哪些做法有效，考慮是否可複製');
+      steps.push('【豐盛期：節約、償還、停止擴張、復健、建立儲備】');
+      steps.push('① 節約：不要因為產能高就擴張或承接超出負荷的任務，節省資源');
+      steps.push('② 償還：盤點之前未完的任務與積欠，優先補上這些內容');
+      steps.push('③ 停止擴張：不要承接新的項目，專注在手邊既有工作');
+      steps.push('④ 復健：確保既有運作順暢，流程與工具無缺口');
+      steps.push('⑤ 建立儲備：將多餘產能轉為儲備，以備未來所需');
     } else {
-      steps.push('【該員產出高於平均】');
-      steps.push('① 與該員討論：了解本週哪些做法有效，協助強化');
-      steps.push('② 確認是否可持續：避免因短期因素造成後續落差');
+      steps.push('【部屬進入豐盛期，主管需協助節約償還】');
+      steps.push('① 協助節約：引導該員節約資源，避免因豐盛而擴張');
+      steps.push('② 償還積欠：請該員盤點未完任務，優先補齊');
+      steps.push('③ 停止擴張：不要指派新任務，專注在手邊既有工作');
+      steps.push('④ 復健現有：確認該員既有流程與運作是否順暢');
+      steps.push('⑤ 建立儲備：協助該員將多餘產能轉為儲備');
     }
   } else {
     if (isSelf) {
@@ -1254,9 +1262,9 @@ var INFO_DATA = {
   '狀態': {
     title: '狀態判定',
     def: '依據個人平均值與本週行動點數，判斷本週工作狀態。',
-    calc: '▲偏高：點數>平均×1.25 且任務>平均×1.15\n🟢正常：點數≥平均×0.8\n▽偏低：點數≥平均×0.5\n○待注意：點數<平均×0.5\n🔷休假：前後週正常、本週歸零\n⬜不存在：無資料',
-    high: '偏高 = 產出高於個人平均',
-    low: '偏低/待注意 = 產出低於個人平均',
+    calc: '🌟豐盛：點數>平均×1.25 且任務>平均×1.15\n🟢正常：點數≥平均×0.8\n🔴緊急：點數≥平均×0.5\n🟡危險：點數<平均×0.5\n🔷休假：前後週正常、本週歸零\n⬜不存在：無資料',
+    high: '豐盛 = 高產出需節約鞏固 / 正常 = 穩定',
+    low: '緊急 = 需調整 / 危險 = 需全面檢討',
     note: '狀態是相對個人平均，不是絕對好壞。'
   },
   '綜合評分': {
@@ -1419,8 +1427,9 @@ function interpretTasks(tasks, avgTasks) {
   return '<span class="interp-text">本週任務 <span class="interp-em">' + tasks + '</span> 件，' + rel + '個人平均（' + avgTasks.toFixed(1) + '件）' + cat + '。</span>';
 }
 function interpretStatus(status) {
-  var notes = {'偏高':'高於平均','正常':'目前狀態穩定','偏低':'低於平均','待注意':'明顯偏低','休假':'前後週正常，應屬休假狀態'};
-  return '<span class="interp-text">狀態 <span class="interp-em">' + status.label + '</span> — ' + (notes[status.label]||'') + '。</span>';
+  var notes = {'豐盛':'產出充足，需注意節約鞏固','正常':'目前狀態穩定','緊急':'低於平均，建議優先檢視任務安排','危險':'明顯偏低，建議立即檢視工作方式','休假':'前後週正常，應屬休假狀態','不存在':'本週無任務紀錄'};
+  var icons = {'豐盛':'🌟','正常':'🟢','緊急':'🔴','危險':'🟡','休假':'🔷','不存在':'⬜'};
+  return '<span class="interp-text">狀態 ' + (icons[status.label]||'') + ' <span class="interp-em">' + status.label + '</span> — ' + (notes[status.label]||'') + '。</span>';
 }
 function interpretScore(comp) {
   return '<span class="interp-text">綜合評分 <span class="interp-em">' + comp.ch + '級（' + comp.score + '分）</span>，' + comp.desc + '。</span>';
@@ -1505,6 +1514,75 @@ Chart.register({
       ctx.moveTo(chart.chartArea.left, y);
       ctx.lineTo(chart.chartArea.right, y);
       ctx.stroke();
+      ctx.restore();
+    });
+  }
+});
+
+// 趨勢線 (Chart.js plugin)
+// ═══════════════════════════════════════
+Chart.register({
+  id: 'trendLines',
+  afterDraw: function(chart) {
+    if (chart.canvas.id !== 'mainChart') return;
+    var yScale = chart.scales.y;
+    var xScale = chart.scales.x;
+    if (!yScale || !xScale) return;
+    var ctx = chart.ctx;
+    chart.data.datasets.forEach(function(ds) {
+      var pts = ds.data;
+      var valid = [];
+      for (var i = 0; i < pts.length; i++) {
+        if (pts[i] !== null && pts[i] !== undefined) valid.push({ x: i, y: pts[i] });
+      }
+      if (valid.length < 3) return;
+      var n = valid.length;
+      var sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+      for (var j = 0; j < n; j++) {
+        sumX += valid[j].x;
+        sumY += valid[j].y;
+        sumXY += valid[j].x * valid[j].y;
+        sumX2 += valid[j].x * valid[j].x;
+      }
+      var denom = n * sumX2 - sumX * sumX;
+      if (Math.abs(denom) < 1e-10) return;
+      var slope = (n * sumXY - sumX * sumY) / denom;
+      var intercept = (sumY - slope * sumX) / n;
+      // Draw line from first to last valid point's x position
+      var x1 = xScale.getPixelForValue(valid[0].x);
+      var x2 = xScale.getPixelForValue(valid[valid.length - 1].x);
+      var y1_val = slope * valid[0].x + intercept;
+      var y2_val = slope * valid[valid.length - 1].x + intercept;
+      var y1 = yScale.getPixelForValue(y1_val);
+      var y2 = yScale.getPixelForValue(y2_val);
+      // Color based on endpoint zone vs personal average
+      var avg = valid.reduce(function(a,b){return a+b.y;}, 0) / n;
+      var endVal = y2_val;
+      var zoneColor;
+      if (endVal > avg * 1.25) zoneColor = '#F1C40F'; // 豐盛 gold
+      else if (endVal >= avg * 0.8) zoneColor = '#27AE60'; // 正常 green
+      else if (endVal >= avg * 0.5) zoneColor = '#E67E22'; // 緊急 orange
+      else zoneColor = '#E74C3C'; // 危險 red
+      ctx.save();
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = zoneColor;
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      // Draw direction arrow at end
+      var arrowSize = 6;
+      var angle = Math.atan2(y1 - y2, x2 - x1);
+      ctx.fillStyle = zoneColor;
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - arrowSize * Math.cos(angle - 0.4), y2 + arrowSize * Math.sin(angle - 0.4));
+      ctx.lineTo(x2 - arrowSize * Math.cos(angle + 0.4), y2 + arrowSize * Math.sin(angle + 0.4));
+      ctx.closePath();
+      ctx.fill();
       ctx.restore();
     });
   }
@@ -1616,7 +1694,7 @@ function renderGuideContent() {
     { title: '① 行動點數', content: '將任務按「時技影複」四維度量化後的總分。反映工作強度，不是單純工作量。高值=任務強度高，低值=任務較少或較簡單。' },
     { title: '② 時技影複（四維度）', content: '每個任務在 Notion 中標記其四維度等級（L/M/H），分析的是比例結構，不是好壞。用途：① 看人員時間都花在哪 ② 比對部屬的文字描述 vs 數據分布，校準認知。<br><br><span class="guide-tag" style="background:#fdecea;color:#e74c3c;">時</span> 耗時：L＜1天 / M 1-2天 / H＞2天<br><span class="guide-tag" style="background:#fef5e7;color:#f39c12;">技</span> 技術：L例行 / M專業 / H高度專業<br><span class="guide-tag" style="background:#e8f8e8;color:#27ae60;">影</span> 影響：L 1-5人 / M 6-20人 / H 20人↑<br><span class="guide-tag" style="background:#eaf2f8;color:#4a90d9;">複</span> 複雜：L單向 / M多方協作 / H衝突協調' },
     { title: '③ 六大策略', content: '🟣 人力生態圈（培育、招募、培訓） 🔴 信任合作（走訪、溝通、會議） 🟠 品牌設計（影片、設計、文宣） 🟢 數位研發（AI、自動化、研究） 🔵 法令便利（法遵、合約、監理） ⚪ 行政營運（寄送、報名、整理）' },
-    { title: '④ 狀態公式', content: '▲偏高：點數>平均×1.25＋任務>平均×1.15 → 高於平均 🟢正常：點數≥平均×0.8 → 穩定 ▽偏低：點數≥平均×0.5 → 低於平均 ○待注意：點數<平均×0.5 → 明顯偏低 🔷休假：前後週正常但本週歸零 ⬜不存在：無資料紀錄' },
+    { title: '④ 狀態公式', content: '🌟豐盛：點數>平均×1.25＋任務>平均×1.15 → 高產出 🟢正常：點數≥平均×0.8 → 穩定 🔴緊急：點數≥平均×0.5 → 需調整 🟡危險：點數<平均×0.5 → 需檢討 🔷休假：前後週正常但本週歸零 ⬜不存在：無資料紀錄' },
     { title: '⑤ 綜合評分', content: 'A級(≥80)優 / B級(≥60)良 / C級(≥40)可 / D級(<40)待加強。加權公式：點數30%＋任務量15%＋狀態25%＋效率15%＋趨勢15%' },
     { title: '⑥ 演化指標', content: '📐廣度：任務種類數，越高工作越分散。📏深度：平均任務點數，越高難度越大。🔄結構變化：與前4週比策略是否增減，反映重心移動。⭐舒適區：同一描述出現≥3次（不含例行必要任務），可能陷入慣性。✨新策略：過去4週未出現的策略，反映新方向。' },
     { title: '⑦ 圖表閱讀', content: '主折線圖：點擊資料點查看該人該週明細。夜鶯玫瑰圖：扇形越大=策略任務越多，點擊查看任務清單。策略時間趨勢：垂直看佔比，水平看遷移。' }
