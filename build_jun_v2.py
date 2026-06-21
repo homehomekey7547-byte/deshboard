@@ -430,20 +430,11 @@ else:
 # ── Inject LAST_UPDATED timestamp ──
 from datetime import datetime
 now_str = datetime.now().strftime('%Y/%m/%d %H:%M')
-build_ts = f'const LAST_UPDATED = "{now_str}";\n'
-existing_ts = html.find('const LAST_UPDATED')
-if existing_ts < 0:
-    rd_semi_pos = html.find(';', html.rfind('const RADIAL_DATA'))
-    if rd_semi_pos >= 0:
-        html = html[:rd_semi_pos+1] + '\n\n' + build_ts + html[rd_semi_pos+1:]
-        print(f'LAST_UPDATED injected: {now_str}')
-    else:
-        print("WARNING: RADIAL_DATA not found, LAST_UPDATED not injected")
+if '__TIMESTAMP__' in html:
+    html = html.replace('__TIMESTAMP__', now_str)
+    print(f'LAST_UPDATED injected: {now_str}')
 else:
-    ts_semi = html.find(';', existing_ts)
-    if ts_semi >= 0:
-        html = html[:existing_ts] + build_ts + html[ts_semi+1:]
-        print(f'LAST_UPDATED updated: {now_str}')
+    print("WARNING: __TIMESTAMP__ placeholder not found")
 
 # ── Update subtitle with actual week range ──
 if ch_weeks:
