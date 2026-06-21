@@ -445,6 +445,15 @@ else:
         html = html[:existing_ts] + build_ts + html[ts_semi+1:]
         print(f'LAST_UPDATED updated: {now_str}')
 
+# ── Update subtitle with actual week range ──
+if ch_weeks:
+    first_wk = ch_weeks[0]
+    last_wk = ch_weeks[-1]
+    new_subtitle = f'年後 W{first_wk}~W{last_wk}'
+    import re as _re
+    html = _re.sub(r'年後 W\d+~W\d+', new_subtitle, html)
+    print(f'Subtitle updated: {new_subtitle}')
+
 # ── CSS / Legend / Dataset / Prefix (skip if already present) ──
 if '.person-badge.jun' not in html:
     html = html.replace(
