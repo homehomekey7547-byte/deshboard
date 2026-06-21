@@ -540,3 +540,13 @@ if dinfo2:
             print(f'  俊 has {len(jw)} weeks: {jw[:5]}...{jw[-3:]}')
     except Exception as e:
         print(f'DETAIL_DATA invalid: {e}')
+
+# ── Critical JS function verification ──
+critical_fns = ['isRoutineDesc', 'trendProjection', 'avgRefLines', 'createChart', 'showDetail', 'computeWeeklyReminder', 'calcStatus', 'renderEvolutionLabels', 'renderWeeklyReport']
+missing = [fn for fn in critical_fns if fn not in html_v]
+if missing:
+    print(f'CRITICAL: Missing JS functions: {missing}')
+    print('Build FAILED - index.html is incomplete')
+    exit(1)
+else:
+    print(f'JS functions OK: {len(critical_fns)} critical functions present')
